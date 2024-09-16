@@ -19,7 +19,6 @@ service = Service(executable_path=chromedriver_path)
 driver = webdriver.Chrome(service=service, options=options)
 
 driver.get(web_site_url)
-
 try:
     time.sleep(3)
     accept_button_xpath = '//*[@id="didomi-notice-agree-button"]'
