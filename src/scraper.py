@@ -28,18 +28,12 @@ try:
 except NoSuchElementException:
     print("No pop-up found or button not clickable")
 
-for row_index in range(1, 11):
+for row_index in range(1, 3):
     xpath_schedule = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[1]/time'
     xpath_revised = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[2]/time'
-
-
     xpath_aircraft_comp_img = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[3]/img'
-
-
     xpath_aircraft = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[4]'
     xpath_destination = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[5]'
-    xpath_state = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[6]'
-    xpath_gate = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[7]'
 
     time.sleep(2)
     data = {}
@@ -73,22 +67,13 @@ for row_index in range(1, 11):
     except NoSuchElementException:
         data['destination'] = "Not found"
     
-    try:
-        state_element = driver.find_element(By.XPATH, xpath_state)
-        data['state'] = state_element.text.strip()
-    except NoSuchElementException:
-        data['state'] = "Not found"
-
-    try:
-        gate_element = driver.find_element(By.XPATH, xpath_gate)
-        data['gate'] = gate_element.text.strip()
-    except NoSuchElementException:
-        data['gate'] = "Not found"
-
     data['id'] = row_index
     data['creation_time'] = datetime.now().isoformat()
 
-    with open(f'row_{row_index}.json', 'w') as f:
+    clean_creation_time = data['creation_time'].replace(':', '-').replace('T', '_').split('.')[0]
+    filename = f'event_departure_{clean_creation_time}.json'
+
+    with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
 
 driver.quit()
