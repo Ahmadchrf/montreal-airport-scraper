@@ -1,6 +1,8 @@
 import time
 import json
 from datetime import datetime
+import os
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -9,13 +11,16 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from constants import web_site_url
 
-chromedriver_path = r"C:\Users\ahmad\OneDrive\Bureau\chromedriver.exe"
-
 options = Options()
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 
-service = Service(executable_path=chromedriver_path)
+
+project_root = os.path.dirname(__file__)
+CHROMEDRIVER_PATH = os.path.join(project_root, 'drivers', 'chromedriver.exe')
+
+
+service = Service(executable_path=os.getenv(CHROMEDRIVER_PATH))
 driver = webdriver.Chrome(service=service, options=options)
 
 driver.get(web_site_url)
