@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  minio:
+    image: docker.io/bitnami/minio:2022
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    networks:
+      - minionetwork
+    volumes:
+      - 'minio_data:/data'
+
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scraper_container
+    command: python -m scr.scraper
+    volumes:
+      - .:/src
+    ports:
+      - 8050:8050
+
+networks:
+  minionetwork:
+    driver: bridge
+
+volumes:
+  minio_data:
+    driver: local
