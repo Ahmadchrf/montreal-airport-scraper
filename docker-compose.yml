@@ -1,26 +1,32 @@
 version: '3'
 
 services:
-  minio:
-    image: docker.io/bitnami/minio:2022
-    ports:
-      - '9000:9000'
-      - '9001:9001'
-    networks:
-      - minionetwork
-    volumes:
-      - 'minio_data:/data'
-
   scraper:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: scraper_container
-    command: python -m scr.scraper
+    command: python3 -m scr.scraper
     volumes:
       - .:/src
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
+    depends_on:
+      - minio
+
+  minio:
+    image: docker.io/bitnami/minio:2022
     ports:
-      - 8050:8050
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
 
 networks:
   minionetwork:
