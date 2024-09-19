@@ -20,7 +20,7 @@ project_root = os.path.dirname(__file__)
 CHROMEDRIVER_PATH = os.path.join(project_root, 'drivers', 'chromedriver.exe')
 
 
-service = Service(executable_path=os.getenv(CHROMEDRIVER_PATH))
+service = Service(executable_path=CHROMEDRIVER_PATH)
 driver = webdriver.Chrome(service=service, options=options)
 
 driver.get(web_site_url)
