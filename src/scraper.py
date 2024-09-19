@@ -9,7 +9,26 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
+from minio import Minio
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from constants import web_site_url
+
+
+client=Minio(
+    f"minio:{os.getenv('MINIO_PORT')}",
+    access_key=os.getenv('MINIO_ROOT_USER'),
+    secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
+)
+
+
+bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
+current_date = datetime.now().strftime('%Y-%m-%d')
+folder_path = f"{current_date}/"
+
+
 
 options = Options()
 options.add_argument('--no-sandbox')
@@ -17,10 +36,10 @@ options.add_argument('--disable-dev-shm-usage')
 
 
 project_root = os.path.dirname(__file__)
-CHROMEDRIVER_PATH = os.path.join(project_root, 'drivers', 'chromedriver.exe')
+# CHROMEDRIVER_PATH = os.path.join(project_root, 'drivers', 'chromedriver.exe')
+CHROME_DRIVER_PATH = os.getenv('CHROME_DRIVER_PATH', '/usr/local/bin/chromedriver')
 
-
-service = Service(executable_path=CHROMEDRIVER_PATH)
+service = Service(executable_path=CHROME_DRIVER_PATH)
 driver = webdriver.Chrome(service=service, options=options)
 
 driver.get(web_site_url)
@@ -80,6 +99,13 @@ for row_index in range(1, 3):
 
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
+    
+    if not client.bucket_exists(bucket_name):
+        client.make_bucket(bucket_name)
+
+    json_filename = f"{folder_path}event_departure_{clean_creation_time}.json"
+    client.fput_object(bucket_name, json_filename, filename)
+
 
 driver.quit()
 print("Data saved to JSON files.")
