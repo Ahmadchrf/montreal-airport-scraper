@@ -2,6 +2,8 @@ import time
 import json
 from datetime import datetime
 import os
+import os
+from dotenv import load_dotenv 
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -12,15 +14,17 @@ from minio import Minio
 
 from constants import web_site_url
 
+load_dotenv() 
+
 
 MINIO_CLIENT = Minio(
-    "localhost:9000",
-    access_key='ahmad',
-    secret_key='ahmad_password',
+    f"localhost:{os.getenv('MINIO_PORT')}",
+    access_key=os.getenv('MINIO_ROOT_USER'),
+    secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
     secure=False
 )
 
-bucket_name = 'dev-data-scraper'
+bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
 current_date = datetime.now().strftime('%Y-%m-%d')
 
 def get_new_folder_name():
@@ -59,7 +63,6 @@ def main():
     local_folder_path = os.path.join(os.getcwd(), new_folder_name)
     os.makedirs(local_folder_path, exist_ok=True)
 
-    
     for row_index in range(1, 13):
         xpath_schedule = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[1]/time'
         xpath_revised = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[2]/time'
