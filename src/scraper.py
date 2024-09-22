@@ -2,7 +2,6 @@ import time
 import json
 from datetime import datetime
 import os
-import os
 from dotenv import load_dotenv 
 
 from selenium import webdriver
