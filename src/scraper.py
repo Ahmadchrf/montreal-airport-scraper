@@ -11,17 +11,18 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from minio import Minio
 
-from constants import web_site_url
+from src.constants import WEB_SITE_URL, CHROME_DRIVER_PATH
 
-load_dotenv() 
-
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path=env_path)
 
 MINIO_CLIENT = Minio(
-    f"localhost:{os.getenv('MINIO_PORT')}",
+    f"minio:{os.getenv('MINIO_PORT')}",
     access_key=os.getenv('MINIO_ROOT_USER'),
     secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
     secure=False
 )
+
 
 bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
 current_date = datetime.now().strftime('%Y-%m-%d')
@@ -45,10 +46,9 @@ def main():
     options = Options()
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    CHROME_DRIVER_PATH = r'C:\Users\ahmad\OneDrive\Bureau\chromedriver.exe'
     service = Service(executable_path=CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
-    driver.get(web_site_url)
+    driver.get(WEB_SITE_URL)
 
     try:
         time.sleep(3)
@@ -62,13 +62,14 @@ def main():
     local_folder_path = os.path.join(os.getcwd(), new_folder_name)
     os.makedirs(local_folder_path, exist_ok=True)
 
-    for row_index in range(1, 13):
-        xpath_schedule = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[1]/time'
-        xpath_revised = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[2]/time'
-        xpath_aircraft_comp_img = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[3]/img'
-        xpath_aircraft = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[4]'
-        xpath_destination = f'//*[@id="DataTables_Table_0"]/tbody/tr[{row_index}]/td[5]'
-
+    for row_index in range(1,11):
+        xpath_schedule      = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[1]'                  
+        xpath_revised       = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[1]/span'
+        
+        xpath_aircraft_comp = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[2]/div[1]'
+        xpath_status        = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[3]/div[1]/span[1]'
+        xpath_destination   = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[2]/div[2]'
+        xpath_gate          = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[3]/div[1]/span[2]/span'
         time.sleep(2)
         data = {}
 
@@ -85,16 +86,22 @@ def main():
             data['revised_time'] = "Not found"
 
         try:
-            aircraft_comp_img = driver.find_element(By.XPATH, xpath_aircraft_comp_img)
-            data['aircraft_comp'] = aircraft_comp_img.get_attribute('alt').strip()
+            aircraft_comp_img = driver.find_element(By.XPATH, xpath_aircraft_comp)
+            data['aircraft_comp'] = aircraft_comp_img.text.strip()
         except NoSuchElementException:
             data['aircraft_comp'] = "Not found"
 
         try:
-            aircraft_element = driver.find_element(By.XPATH, xpath_aircraft)
-            data['aircraft_number'] = aircraft_element.text.strip()
+            aircraft_element = driver.find_element(By.XPATH, xpath_status)
+            data['aircraft_status'] = aircraft_element.text.strip()
         except NoSuchElementException:
-            data['aircraft_number'] = "Not found"
+            data['aircraft_status'] = "Not found"
+
+        try:
+            gate = driver.find_element(By.XPATH, xpath_gate)
+            data['aircraft_gate'] = gate.text.strip()
+        except NoSuchElementException:
+            data['aircraft_gate'] = "Not found"
 
         try:
             destination_element = driver.find_element(By.XPATH, xpath_destination)
