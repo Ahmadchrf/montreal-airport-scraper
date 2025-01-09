@@ -5,16 +5,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: scraper_image_container
+    container_name: montreal-scraper
     command: python3 -m src.scraper
     volumes:
       - ./src:/app/src
     environment:
-      - MINIO_PORT=${MINIO_PORT}
+      - MINIO_ROOT_USER=Ahmad1!
+      - MINIO_ROOT_PASSWORD=Ahmad1!2
+      - MINIO_DEFAULT_BUCKETS=dev-raw-scraper-new
     depends_on:
       - minio
-    env_file:
-      - src/.env
+
   minio:
     image: docker.io/bitnami/minio:2022
     container_name: minio_container
@@ -23,8 +24,11 @@ services:
       - '9001:9001'
     volumes:
       - minio_data:/data
-    env_file:
-      - src/.env 
+    environment:
+      - MINIO_ROOT_USER=Ahmad1!
+      - MINIO_ROOT_PASSWORD=Ahmad1!2
+      - MINIO_DEFAULT_BUCKETS=dev-raw-scraper-new
+
 networks:
   default:
     driver: bridge
