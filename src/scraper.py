@@ -11,20 +11,43 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from minio import Minio
 
-from src.constants import WEB_SITE_URL, CHROME_DRIVER_PATH
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-env_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(dotenv_path=env_path)
+# from src.constants import WEB_SITE_URL, CHROME_DRIVER_PATH
+
+
+WEB_SITE_URL='https://www.admtl.com/en-CA/flights/departures'
+CHROME_DRIVER_PATH = r'C:\Users\ahmad\OneDrive\Bureau\chromedriver.exe'
+
+# env_path = os.path.join(os.path.dirname(__file__), '.env')
+# load_dotenv(dotenv_path=env_path)
+
+# MINIO_CLIENT = Minio(
+#     f"minio:{os.getenv('MINIO_PORT')}",
+#     access_key=os.getenv('MINIO_ROOT_USER'),
+#     secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
+#     secure=False
+# )
+
+# bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
+
+# MINIO_CLIENT = Minio(
+#     f"minio:9000",
+#     access_key='Ahmad1!',
+#     secret_key='Ahmad1!2',
+#     secure=False
+# )
 
 MINIO_CLIENT = Minio(
-    f"minio:{os.getenv('MINIO_PORT')}",
-    access_key=os.getenv('MINIO_ROOT_USER'),
-    secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
+    f"localhost:9000",
+    access_key='Ahmad1!',
+    secret_key='Ahmad1!2',
     secure=False
 )
 
-
-bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
+bucket_name = 'dev-raw-scraper-new'
+print(f"Bucket name from environment: {bucket_name}")
 current_date = datetime.now().strftime('%Y-%m-%d')
 
 def get_new_folder_name():
@@ -44,32 +67,63 @@ def main():
     print(f"New folder name: '{new_folder_name}'")
 
     options = Options()
+    # options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--window-size=1920,1080")
+
+
     service = Service(executable_path=CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
     driver.get(WEB_SITE_URL)
 
+    # try:
+    #     time.sleep(5)
+    #     accept_button_xpath = '//*[@id="didomi-notice-agree-button"]'
+    #     accept_button = driver.find_element(By.XPATH, accept_button_xpath)
+    #     accept_button.click()
+    #     print("Accept Button accepted.")
+
+    #     time.sleep(3)
+    #     opinion_button_xpath='//*[@id="main"]/div[5]/div[2]/div/div[3]/button[2]'
+    #     opinion_button=driver.find_element(By.XPATH,opinion_button_xpath)
+    #     opinion_button.click()
+    #     print("Opinion Button accepted.")
+
+    # except NoSuchElementException:
+    #     print("No pop-up found or button not clickable")
+
     try:
-        time.sleep(3)
-        accept_button_xpath = '//*[@id="didomi-notice-agree-button"]'
-        accept_button = driver.find_element(By.XPATH, accept_button_xpath)
+        accept_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="didomi-notice-agree-button"]'))
+        )
         accept_button.click()
-        print("Pop-up accepted.")
-    except NoSuchElementException:
-        print("No pop-up found or button not clickable")
+        print("Accept Button clicked.")
+
+        opinion_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[5]/div[2]/div/div[3]/button[2]'))
+        )
+        opinion_button.click()
+        print("Opinion Button clicked.")
+
+    except Exception as e:
+        print(f"No pop-up found or button not clickable: {e}")
+
 
     local_folder_path = os.path.join(os.getcwd(), new_folder_name)
     os.makedirs(local_folder_path, exist_ok=True)
 
+    driver.save_screenshot("headless_debug_beginning.png")
+
     for row_index in range(1,11):
-        xpath_schedule      = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[1]'                  
-        xpath_revised       = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[1]/span'
-        
+        xpath_schedule      = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[1]/span'                       
+        xpath_revised       = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[1]'
         xpath_aircraft_comp = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[2]/div[1]'
-        xpath_status        = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[3]/div[1]/span[1]'
-        xpath_destination   = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[2]/div[2]'
+        xpath_status        = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[3]/div[1]/span[1]/span'
+        xpath_destination   = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[2]/div[2]'             
         xpath_gate          = f'//*[@id="main"]/webruntime-app/lwr-router-container/webruntime-inner-app/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/c-osf-a-d-m-custom-theme/div/section/slot/webruntime-router-container/dxp_data_provider-user-data-provider/dxp_data_provider-data-proxy/community_layout-slds-flexible-layout/div/community_layout-section[2]/div[3]/community_layout-column/div/c-osf-flights-listings/div/div[2]/div[1]/div[{row_index}]/div[3]/div[1]/span[2]/span'
+        
         time.sleep(2)
         data = {}
 
@@ -125,6 +179,8 @@ def main():
         MINIO_CLIENT.fput_object(bucket_name, json_minio_path, local_file_path)
         print(f"File '{filename}' uploaded to MinIO bucket '{bucket_name}' in folder '{new_folder_name}'.")
 
+
+    driver.save_screenshot("headless_debug_end.png")
     driver.quit()
     print("Data saved to JSON files.")
 
