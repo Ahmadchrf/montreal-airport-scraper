@@ -2,51 +2,30 @@ import time
 import json
 from datetime import datetime
 import os
-from dotenv import load_dotenv 
+from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-from minio import Minio
-
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# from src.constants import WEB_SITE_URL, CHROME_DRIVER_PATH
+from minio import Minio
 
+from src.constants import WEB_SITE_URL, CHROME_DRIVER_PATH
 
-WEB_SITE_URL='https://www.admtl.com/en-CA/flights/departures'
-CHROME_DRIVER_PATH = r'C:\Users\ahmad\OneDrive\Bureau\chromedriver.exe'
-
-# env_path = os.path.join(os.path.dirname(__file__), '.env')
-# load_dotenv(dotenv_path=env_path)
-
-# MINIO_CLIENT = Minio(
-#     f"minio:{os.getenv('MINIO_PORT')}",
-#     access_key=os.getenv('MINIO_ROOT_USER'),
-#     secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
-#     secure=False
-# )
-
-# bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
-
-# MINIO_CLIENT = Minio(
-#     f"minio:9000",
-#     access_key='Ahmad1!',
-#     secret_key='Ahmad1!2',
-#     secure=False
-# )
 
 MINIO_CLIENT = Minio(
-    f"localhost:9000",
-    access_key='Ahmad1!',
-    secret_key='Ahmad1!2',
+    f"minio:9000",
+    access_key=os.getenv('MINIO_ROOT_USER'),
+    secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
     secure=False
 )
 
-bucket_name = 'dev-raw-scraper-new'
+bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
+
 print(f"Bucket name from environment: {bucket_name}")
 current_date = datetime.now().strftime('%Y-%m-%d')
 
@@ -79,22 +58,6 @@ def main():
     service = Service(executable_path=CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
     driver.get(WEB_SITE_URL)
-
-    # try:
-    #     time.sleep(5)
-    #     accept_button_xpath = '//*[@id="didomi-notice-agree-button"]'
-    #     accept_button = driver.find_element(By.XPATH, accept_button_xpath)
-    #     accept_button.click()
-    #     print("Accept Button accepted.")
-
-    #     time.sleep(3)
-    #     opinion_button_xpath='//*[@id="main"]/div[5]/div[2]/div/div[3]/button[2]'
-    #     opinion_button=driver.find_element(By.XPATH,opinion_button_xpath)
-    #     opinion_button.click()
-    #     print("Opinion Button accepted.")
-
-    # except NoSuchElementException:
-    #     print("No pop-up found or button not clickable")
 
     try:
         accept_button = WebDriverWait(driver, 10).until(
