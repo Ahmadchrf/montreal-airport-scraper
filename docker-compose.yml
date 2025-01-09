@@ -10,9 +10,9 @@ services:
     volumes:
       - ./src:/app/src
     environment:
-      - MINIO_ROOT_USER=Ahmad1!
-      - MINIO_ROOT_PASSWORD=Ahmad1!2
-      - MINIO_DEFAULT_BUCKETS=dev-raw-scraper-new
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
     depends_on:
       - minio
 
@@ -25,9 +25,9 @@ services:
     volumes:
       - minio_data:/data
     environment:
-      - MINIO_ROOT_USER=Ahmad1!
-      - MINIO_ROOT_PASSWORD=Ahmad1!2
-      - MINIO_DEFAULT_BUCKETS=dev-raw-scraper-new
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
 
 networks:
   default:
