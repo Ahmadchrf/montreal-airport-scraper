@@ -10,11 +10,11 @@ CREATE TABLE flight_schema.flight_table (
     schedule_date DATE,
     revised_time TIMESTAMP,
     aircraft_number VARCHAR(10),
-    aircraft_comp VARCHAR(20),
+    aircraft_comp VARCHAR(40),
     aircraft_status VARCHAR(20),
     aircraft_gate VARCHAR(10),
-    destination VARCHAR(20),
-    destination_initial VARCHAR(10),
+    destination VARCHAR(40),
+    destination_initial VARCHAR(20),
     id_scrap INTEGER,
     creation_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
