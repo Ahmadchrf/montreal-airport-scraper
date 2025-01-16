@@ -1,20 +1,118 @@
 from datetime import datetime, timezone, timedelta
+import time
 from minio import Minio
 import json
 import os
-import pandas as pd
-from dotenv import load_dotenv
+import psycopg2
 
-load_dotenv() 
 
 MINIO_CLIENT = Minio(
-    f"localhost:{os.getenv('MINIO_PORT')}",
+    f"minio:9000",
     access_key=os.getenv('MINIO_ROOT_USER'),
     secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
     secure=False
 )
 
-bucket_name = os.getenv('MINIO_DEPARTURE_BUCKETS')
+bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
+
+def get_db_connection():
+    return psycopg2.connect(
+        dbname='montreal_data',
+        user='admin',
+        password='admin_password',
+        host='db',
+        port=5432,
+        options="-c client_encoding=UTF8"
+    )
+
+from datetime import datetime, timezone, timedelta
+
+def transform_data(data):
+    try:
+        montreal_offset = timedelta(hours=-5)
+
+        if data.get('creation_time'):
+            creation_time = datetime.fromisoformat(data['creation_time']).replace(tzinfo=timezone.utc)
+            data['schedule_date'] = (creation_time + montreal_offset).date()
+        else:
+            print("Invalid or missing creation_time")
+            data['schedule_date'] = None
+
+        if data.get('schedule_time') and data['schedule_time'] != 'Not found':
+            time_part = datetime.strptime(data['schedule_time'], '%H:%M').time()
+            data['schedule_time'] = datetime.combine(data['schedule_date'], time_part, tzinfo=timezone.utc) - montreal_offset
+        else:
+            print(f"Invalid or missing schedule_time: {data.get('schedule_time')}")
+            data['schedule_time'] = None
+
+        if data.get('revised_time') and data['revised_time'] != 'Not found':
+            time_part = datetime.strptime(data['revised_time'].split('\n')[0], '%H:%M').time()
+            data['revised_time'] = datetime.combine(data['schedule_date'], time_part, tzinfo=timezone.utc) - montreal_offset
+        else:
+            print(f"Invalid or missing revised_time: {data.get('revised_time')}")
+            data['revised_time'] = None
+
+        aircraft_parts = data.get('aircraft_comp', '').split(' ', 1)
+        data['aircraft_number'] = aircraft_parts[0] if len(aircraft_parts) > 0 else "Unknown"
+        data['aircraft_comp'] = aircraft_parts[1] if len(aircraft_parts) > 1 else "Unknown"
+
+        destination_parts = data.get('destination', '').split(' (')
+        data['destination'] = destination_parts[0].strip() if len(destination_parts) > 0 else "Unknown"
+        data['destination_initial'] = destination_parts[1].strip(')') if len(destination_parts) > 1 else "Unknown"
+
+        data['id_scrap'] = data.get('id', -1)
+
+    except Exception as e:
+        print(f"Error transforming data: {e}")
+        raise
+
+    return data
+
+
+def sanitize_data(data):
+    for key, value in data.items():
+        if isinstance(value, str):
+            data[key] = value.encode('utf-8', 'replace').decode('utf-8')
+    return data
+
+def insert_data_into_db(data):
+    insert_query = """
+        INSERT INTO flight_schema.flight_table (
+            schedule_time, schedule_date, revised_time, aircraft_number, aircraft_comp,
+            aircraft_status, aircraft_gate, destination, destination_initial, id_scrap, creation_time
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    conn = get_db_connection()
+
+    print("Transformed Data Before Insert:")
+    for key, value in data.items():
+        print(f"{key}: {repr(value)}")
+
+    data = sanitize_data(data)
+
+    cursor = conn.cursor()
+
+    cursor.execute(insert_query, (
+        data['schedule_time'], data['schedule_date'], data['revised_time'], data['aircraft_number'],
+        data['aircraft_comp'], data['aircraft_status'], data['aircraft_gate'], data['destination'],
+        data['destination_initial'], data['id_scrap'], data['creation_time']
+    ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    
+def download_and_process_files(folder_name):
+    for obj in MINIO_CLIENT.list_objects(bucket_name, prefix=folder_name + '/', recursive=True):
+        local_file_path = os.path.join('/tmp', obj.object_name.split('/')[-1])
+        MINIO_CLIENT.fget_object(bucket_name, obj.object_name, local_file_path)
+
+        with open(local_file_path, 'r') as f:
+            data = json.load(f)
+            transformed_data = transform_data(data)
+            insert_data_into_db(transformed_data)
+            print(f"Inserted data into database: {transformed_data}")
 
 def get_latest_folder_name():
     folders = set()
@@ -22,76 +120,25 @@ def get_latest_folder_name():
         folder_name = obj.object_name.split('/')[0]
         folders.add(folder_name)
 
-    latest_folder = sorted(folders, key=lambda x: datetime.strptime(x, '%Y-%m-%d_%H-%M-%S'))[-1]
+    try:
+        latest_folder = sorted(
+            folders, 
+            key=lambda x: datetime.strptime(x, '%Y-%m-%d_%H-%M-%S')
+        )[-1]
+    except ValueError as e:
+        raise Exception("Folder names are not in the expected format: YYYY-MM-DD_HH-MM-SS") from e
+
     return latest_folder
-def transform_data(data):
-    data['schedule_time'] = data['schedule_time'].split('\n')[0]
-    data['revised_time'] = data['revised_time'].split('\n')[0]
-    data['destination'] = data['destination'].split('\n')[0]
 
-    try:
-        schedule_dt = datetime.strptime(data['schedule_time'], '%H:%M').replace(tzinfo=timezone.utc)
-    except ValueError:
-        schedule_dt = None
-        print(f"Invalid schedule_time: {data['schedule_time']}")
-
-    try:
-        revised_dt = datetime.strptime(data['revised_time'], '%H:%M').replace(tzinfo=timezone.utc)
-    except ValueError:
-        revised_dt = None
-        print(f"Invalid revised_time: {data['revised_time']}")
-
-    if schedule_dt:
-        montreal_offset = timedelta(hours=-4)
-        data['utc_time'] = schedule_dt.isoformat()
-        data['montreal_time'] = (schedule_dt + montreal_offset).isoformat()
-
-        if revised_dt:
-            data['time_difference'] = str(schedule_dt - revised_dt)
-        else:
-            data['time_difference'] = "N/A"
-    else:
-        data['utc_time'] = "N/A"
-        data['montreal_time'] = "N/A"
-        data['time_difference'] = "N/A"
-
-    return data
-
-def download_and_process_files(folder_name, chunk_size=10):
-    local_folder_path = os.path.join(os.getcwd(), folder_name)
-    os.makedirs(local_folder_path, exist_ok=True)
-
-    files_processed = 0
-    file_list = []
-    combined_data = []
-
-    for obj in MINIO_CLIENT.list_objects(bucket_name, prefix=folder_name + '/', recursive=True):
-        file_list.append(obj)
-        if len(file_list) == chunk_size:
-            for file_obj in file_list:
-                local_file_path = os.path.join(local_folder_path, file_obj.object_name.split('/')[-1])
-                MINIO_CLIENT.fget_object(bucket_name, file_obj.object_name, local_file_path)
-
-                with open(local_file_path, 'r') as f:
-                    data = json.load(f)
-                    transformed_data = transform_data(data)
-                    combined_data.append(transformed_data)
-
-                files_processed += 1
-
-            file_list = []
-
-            df = pd.DataFrame(combined_data)
-            csv_file_name = f"data_exported_chunk_{files_processed//chunk_size}.csv"
-            df.to_csv(csv_file_name, index=False)
-            print(f"Processed {files_processed} files. Exported to {csv_file_name}")
-
-            combined_data = []
 
 def main():
+    print("Waiting for the scraper to populate data")
+    time.sleep(45)
     latest_folder_name = get_latest_folder_name()
-    print(f"Latest folder: '{latest_folder_name}'")
+
+    print(f"Processing latest folder: {latest_folder_name}")
     download_and_process_files(latest_folder_name)
+
 
 if __name__ == "__main__":
     main()
