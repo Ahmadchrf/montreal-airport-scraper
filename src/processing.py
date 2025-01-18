@@ -133,7 +133,6 @@ def get_latest_folder_name():
 
 def main():
     print("Waiting for the scraper to populate data")
-    time.sleep(45)
     latest_folder_name = get_latest_folder_name()
 
     print(f"Processing latest folder: {latest_folder_name}")
