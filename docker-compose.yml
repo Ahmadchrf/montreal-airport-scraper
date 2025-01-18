@@ -1,34 +1,27 @@
 version: '3.8'
 
 services:
-  scraper:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: montreal-scraper
-    command: python3 -m src.scraper
-    volumes:
-      - ./src:/app/src
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
-    depends_on:
-      - minio
-      - db
-
-  minio:
-    image: docker.io/bitnami/minio:2022
-    container_name: minio_container
+  airflow-webserver:
+    image: apache/airflow:2.6.2
+    container_name: airflow_webserver
     ports:
-      - '9000:9000'
-      - '9001:9001'
-    volumes:
-      - minio_data:/data
+      - "8080:8080"
     environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://admin:admin_password@db/montreal_data
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      
+    depends_on:
+      - db
+      - minio
 
   db:
     image: postgres:15
@@ -37,39 +30,27 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin_password
-      POSTGRES_DB: montreal_data
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./data/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  processor:
-    build:
-      context: .
-      dockerfile: Dockerfile.processing
-    container_name: montreal-processor
-    command: python3 -m src.processing
-    volumes:
-      - ./src:/app/src
+  minio:
+    image: bitnami/minio:2022
+    container_name: minio_container
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin_password
-      - POSTGRES_DB=montreal_data
-    depends_on:
-      - minio
-      - db
-
-
-networks:
-  default:
-    driver: bridge
+    volumes:
+      - minio_data:/data
 
 volumes:
-  minio_data:
-    driver: local
   postgres_data:
+    driver: local
+  minio_data:
     driver: local
