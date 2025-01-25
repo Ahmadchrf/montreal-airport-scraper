@@ -18,8 +18,8 @@ bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
 def get_db_connection():
     return psycopg2.connect(
         dbname='montreal_data',
-        user='admin',
-        password='admin_password',
+        user='flight_user',
+        password='test',
         host='db',
         port=5432,
         options="-c client_encoding=UTF8"
