@@ -1,40 +1,19 @@
-version: '3.8'
-
+# version: "3.8"
 services:
-  airflow-webserver:
-    image: apache/airflow:2.6.2
-    container_name: airflow_webserver
-    ports:
-      - "8080:8080"
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://admin:admin_password@db/montreal_data
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./src:/opt/airflow/src
-      
-    depends_on:
-      - db
-      - minio
-
   db:
     image: postgres:15
     container_name: postgres_db
-    restart: always
-    ports:
-      - "5432:5432"
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./data/init_montreal_db.sh:/docker-entrypoint-initdb.d/init_montreal_db.sh:ro
+    networks:
+      - airflow-network
+    ports:
+      - "5432:5432"
 
   minio:
     image: bitnami/minio:2022
@@ -48,9 +27,32 @@ services:
       - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
     volumes:
       - minio_data:/data
+    networks:
+      - airflow-network
+
+  airflow-webserver:
+    image: apache/airflow:2.6.2
+    container_name: airflow_webserver
+    depends_on:
+      - db
+      - minio
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@db:5432/airflow
+    command: >
+      bash -c "airflow db init && airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin_password_airflow && airflow scheduler & airflow webserver"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+    ports:
+      - "8080:8080"
+    networks:
+      - airflow-network
 
 volumes:
   postgres_data:
-    driver: local
   minio_data:
-    driver: local
+
+networks:
+  airflow-network:
+    driver: bridge
