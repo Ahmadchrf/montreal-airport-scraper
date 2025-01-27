@@ -1,12 +1,16 @@
 FROM python:3.9-slim
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && apt-get clean
+    
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install python-dotenv
-
-COPY ./src /app/src
-
 EXPOSE 5432 9000
 
-CMD ["python3", "-m", "src.processing"]
+
+COPY ./scripts /opt/airflow/scripts
+CMD ["python", "/opt/airflow/scripts/processing.py"]
