@@ -18,7 +18,7 @@ with DAG(
     dag_id='scraper_processor_pipeline',
     default_args=default_args,
     schedule_interval='*/15 * * * *',
-    start_date=datetime(2025, 1, 26, 12, 0, tzinfo=local_tz),
+    start_date=datetime(2025, 1, 27, 17, 0, tzinfo=local_tz),
     catchup=False
 ) as dag:
 
