@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM python:3.9-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -33,7 +33,6 @@ COPY ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install python-dotenv
 
-COPY ./src /app/src
-ENV PYTHONPATH=/app
-
-CMD ["python3", "-m", "src.scraper"]
+COPY ./scripts /opt/airflow/scripts
+ENV PYTHONPATH=/opt/airflow
+CMD ["python", "/opt/airflow/scripts/scraper.py"]
