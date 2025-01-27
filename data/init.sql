@@ -1,3 +1,7 @@
+CREATE DATABASE montreal_data;
+
+\c montreal_data;
+
 CREATE SCHEMA IF NOT EXISTS flight_schema;
 
 CREATE USER flight_user WITH PASSWORD 'test';
@@ -18,6 +22,9 @@ CREATE TABLE flight_schema.flight_table (
     id_scrap INTEGER,
     creation_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+GRANT USAGE, SELECT ON SEQUENCE flight_schema.flight_table_primary_id_seq TO flight_user;
+GRANT UPDATE ON SEQUENCE flight_schema.flight_table_primary_id_seq TO flight_user;
 
 
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA flight_schema TO flight_user;
