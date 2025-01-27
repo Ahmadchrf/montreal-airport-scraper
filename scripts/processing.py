@@ -9,7 +9,7 @@ import logging
 
 
 # MINIO_CLIENT = Minio(
-#     f"minio:9001",
+#     f"minio:9000",
 #     access_key=os.getenv('MINIO_ROOT_USER'),
 #     secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
 #     secure=False
