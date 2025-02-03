@@ -17,8 +17,8 @@ default_args = {
 with DAG(
     dag_id='scraper_processor_pipeline',
     default_args=default_args,
-    schedule_interval='*/15 * * * *',
-    start_date=datetime(2025, 1, 27, 17, 0, tzinfo=local_tz),
+    schedule_interval="*/30 * * * *",
+    start_date=datetime(2025, 2, 2, 14, 0, tzinfo=local_tz),
     catchup=False
 ) as dag:
 
@@ -39,7 +39,7 @@ with DAG(
     )
 
     processor_task = DockerOperator(
-        task_id='run_procesing',
+        task_id='run_processing',
         image='processor_image',
         container_name='processing_container_run',
         api_version='auto',
