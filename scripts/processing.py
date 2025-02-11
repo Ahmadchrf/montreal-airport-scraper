@@ -8,32 +8,22 @@ import logging
 
 
 
-# MINIO_CLIENT = Minio(
-#     f"minio:9000",
-#     access_key=os.getenv('MINIO_ROOT_USER'),
-#     secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
-#     secure=False
-# )
-
-# bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
-
 MINIO_CLIENT = Minio(
     f"minio:9000",
-    access_key='AhmadUser',
-    secret_key='AhmadPasswoRd',
+    access_key=os.getenv('MINIO_ROOT_USER'),
+    secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
     secure=False
 )
 
-bucket_name = 'dev-raw-scraper-mtl'
+bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS')
 
 def get_db_connection():
     return psycopg2.connect(
-        dbname='montreal_data',
-        user='flight_user',
-        password='test',
+        dbname=os.getenv('FLIGHT_DB'),
+        user=os.getenv('FLIGHT_USER'),
+        password=os.getenv('FLIGHT_USER_PASSWORD'),
         host='postgres',
-        port=5432,
-        options="-c client_encoding=UTF8"
+        port=5432
     )
 
 logging.basicConfig(level=logging.INFO)

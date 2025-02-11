@@ -17,21 +17,16 @@ from minio import Minio
 from constants import WEB_SITE_URL, CHROME_DRIVER_PATH
 
 
-# MINIO_CLIENT = Minio(
-#     f"minio:9000",
-#     access_key=os.getenv('MINIO_ROOT_USER'),
-#     secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
-#     secure=False
-# )
-
 MINIO_CLIENT = Minio(
     f"minio:9000",
-    access_key='AhmadUser',
-    secret_key='AhmadPasswoRd',
+    access_key=os.getenv('MINIO_ROOT_USER'),
+    secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
     secure=False
 )
 
-bucket_name = 'dev-raw-scraper-mtl' #os.getenv('MINIO_DEFAULT_BUCKETS')
+
+bucket_name = os.getenv('MINIO_DEFAULT_BUCKETS', 'dev-raw-scraper-mtl')
+
 
 print(f"Bucket name from environment: {bucket_name}")
 current_date = datetime.now().strftime('%Y-%m-%d')
