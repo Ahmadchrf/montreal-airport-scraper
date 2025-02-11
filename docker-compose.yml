@@ -1,14 +1,15 @@
 # version: "3.8"
 
 services:
-
   postgres:
     image: postgres:15
     container_name: postgres_db
+    env_file: 
+      - .env
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -20,10 +21,12 @@ services:
   minio:
     image: bitnami/minio:2022
     container_name: minio
+    env_file: 
+      - .env
     environment:
-      MINIO_ROOT_USER: AhmadUser
-      MINIO_ROOT_PASSWORD: AhmadPasswoRd
-      MINIO_DEFAULT_BUCKETS: dev-raw-scraper-mtl
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DEFAULT_BUCKETS: ${MINIO_DEFAULT_BUCKETS}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -38,9 +41,11 @@ services:
     depends_on:
       - postgres
       - minio
+    env_file:
+      - .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airflow
       _PIP_ADDITIONAL_REQUIREMENTS: minio psycopg2-binary
     ports:
       - "8080:8080"
@@ -49,18 +54,11 @@ services:
       - ./logs:/opt/airflow/logs
       - ./scripts:/opt/airflow/scripts
       - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/group:/etc/group:ro
-    cap_add:
-      - SYS_ADMIN
-    privileged: true
+      - ./entrypoint.sh:/entrypoint.sh
     networks:
       - airflow-network
-    command: >
-      bash -c "
-      airflow db init &&
-      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
-      airflow webserver
-      "
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+
 
   airflow-scheduler:
     image: apache/airflow:2.7.2
@@ -68,22 +66,19 @@ services:
     depends_on:
       - postgres
       - airflow-webserver
+    env_file: 
+      - .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airflow
       _PIP_ADDITIONAL_REQUIREMENTS: minio psycopg2-binary
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./scripts:/opt/airflow/scripts
       - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/group:/etc/group:ro
-    cap_add:
-      - SYS_ADMIN
-    privileged: true
     networks:
       - airflow-network
-      
     command: airflow scheduler
 
 volumes:
