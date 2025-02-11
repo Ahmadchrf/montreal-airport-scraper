@@ -1,9 +1,10 @@
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.models import Variable
 from datetime import datetime, timedelta
 import pendulum
-import subprocess
+import os
+
 
 local_tz = pendulum.timezone("America/Montreal")
 
@@ -13,6 +14,13 @@ default_args = {
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
 }
+
+MINIO_ENV = {
+    "MINIO_ROOT_USER": Variable.get("MINIO_ROOT_USER", default_var="AhmadUser"),
+    "MINIO_ROOT_PASSWORD": Variable.get("MINIO_ROOT_PASSWORD", default_var="AhmadPasswoRd"),
+    "MINIO_DEFAULT_BUCKETS": Variable.get("MINIO_DEFAULT_BUCKETS", default_var="dev-raw-scraper-mtl"),
+}
+
 
 with DAG(
     dag_id='scraper_processor_pipeline',
@@ -32,9 +40,9 @@ with DAG(
         network_mode='montreal-airport-scraper_airflow-network',
         command="python /opt/airflow/scripts/scraper.py",
         environment={
-            "MINIO_ROOT_USER": "AhmadUser",
-            "MINIO_ROOT_PASSWORD": "AhmadPasswoRd",
-            "MINIO_DEFAULT_BUCKETS": "dev-raw-scraper-mtl"
+            "MINIO_ROOT_USER": os.getenv('MINIO_ROOT_USER'),
+            "MINIO_ROOT_PASSWORD": os.getenv('MINIO_ROOT_PASSWORD'),
+            "MINIO_DEFAULT_BUCKETS": os.getenv('MINIO_DEFAULT_BUCKETS')
         }
     )
 
@@ -48,9 +56,9 @@ with DAG(
         network_mode='montreal-airport-scraper_airflow-network',
         command="python /opt/airflow/scripts/processing.py",
         environment={
-            "MINIO_ROOT_USER": "AhmadUser",
-            "MINIO_ROOT_PASSWORD": "AhmadPasswoRd",
-            "MINIO_DEFAULT_BUCKETS": "dev-raw-scraper-mtl"
+            "MINIO_ROOT_USER": os.getenv('MINIO_ROOT_USER'),
+            "MINIO_ROOT_PASSWORD": os.getenv('MINIO_ROOT_PASSWORD'),
+            "MINIO_DEFAULT_BUCKETS": os.getenv('MINIO_DEFAULT_BUCKETS')
         }
     )
 
